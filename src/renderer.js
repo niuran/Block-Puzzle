@@ -417,9 +417,18 @@ function initiateDrag(e) {
     // Initial update
     const clientX = e.clientX || e.touches[0].clientX;
     const clientY = e.clientY || e.touches[0].clientY;
+
     updateDragPosition(clientX, clientY);
 
     potentialDrag = null; // Consumed
+}
+
+function updateDragPosition(clientX, clientY) {
+    if (!dragElement) return;
+    dragElement.style.left = `${clientX - dragOffsetX}px`;
+    dragElement.style.top = `${clientY - dragOffsetY}px`;
+
+    highlightGrid(clientX, clientY);
 }
 
 function onMouseMove(e) {
