@@ -17,6 +17,8 @@ body {
   align-items: center;
   height: 100vh;
   overflow: hidden;
+  touch-action: none;
+  /* Prevent pull-to-refresh and scrolling */
 }
 
 #app {
