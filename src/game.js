@@ -70,12 +70,14 @@ export class Game {
         this.isGameOver = false;
         this.combo = 0;
         this.roundCount = 0; // Track rounds
+        this.isClearing = false; // Track clearing state
         this.onStateChange = null; // Callback for UI updates
     }
 
     init(callback) {
         this.onStateChange = callback;
         this.roundCount = 0;
+        this.isClearing = false;
         this.generateCandidates();
         this.notify();
     }
@@ -136,8 +138,12 @@ export class Game {
             });
         });
 
-        if (this.checkGameOver()) {
-            this.isGameOver = true;
+        // Only check game over if NOT clearing.
+        // If clearing, the timeout will check it after grid is cleared.
+        if (!this.isClearing) {
+            if (this.checkGameOver()) {
+                this.isGameOver = true;
+            }
         }
     }
 
@@ -284,6 +290,8 @@ export class Game {
 
         if (linesCleared > 0) {
             this.combo++;
+            this.isClearing = true; // Set clearing flag
+
             // Mark as clearing (2)
             rowsToClear.forEach(r => {
                 this.grid[r].fill(2);
@@ -323,6 +331,8 @@ export class Game {
                         this.gridColors[r][c] = null; // Clear colors
                     }
                 });
+
+                this.isClearing = false; // Clear flag
 
                 // Check game over AFTER clearing
                 if (this.checkGameOver()) {

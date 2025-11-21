@@ -232,6 +232,8 @@ body {
   border-radius: 16px;
   text-align: center;
   border: 2px solid var(--accent);
+  cursor: move;
+  user-select: none;
 }
 
 .game-over-content h2 {
