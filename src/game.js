@@ -147,6 +147,27 @@ export class Game {
         }
     }
 
+    rotateCandidate(index) {
+        const candidate = this.candidates[index];
+        if (!candidate || candidate.used) return;
+
+        const matrix = candidate.matrix;
+        const rows = matrix.length;
+        const cols = matrix[0].length;
+
+        // Rotate 90 degrees clockwise
+        const newMatrix = Array.from({ length: cols }, () => Array(rows).fill(0));
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                newMatrix[c][rows - 1 - r] = matrix[r][c];
+            }
+        }
+
+        candidate.matrix = newMatrix;
+        this.notify();
+    }
+
     // Check if a shape can be placed at (x, y) on the grid
     // x, y are grid coordinates (0-7)
     canPlace(shapeMatrix, startX, startY) {

@@ -123,9 +123,16 @@ function makeDraggable(element) {
     document.addEventListener("mouseup", dragEnd);
     document.addEventListener("mousemove", drag);
 
+    element.addEventListener("touchstart", dragStart, { passive: false });
+    document.addEventListener("touchend", dragEnd);
+    document.addEventListener("touchmove", drag, { passive: false });
+
     function dragStart(e) {
-        initialX = e.clientX - xOffset;
-        initialY = e.clientY - yOffset;
+        const clientX = e.clientX || e.touches[0].clientX;
+        const clientY = e.clientY || e.touches[0].clientY;
+
+        initialX = clientX - xOffset;
+        initialY = clientY - yOffset;
 
         if (e.target === element || element.contains(e.target)) {
             // Don't drag if clicking button
@@ -143,8 +150,12 @@ function makeDraggable(element) {
     function drag(e) {
         if (isDragging) {
             e.preventDefault();
-            currentX = e.clientX - initialX;
-            currentY = e.clientY - initialY;
+
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+
+            currentX = clientX - initialX;
+            currentY = clientY - initialY;
 
             xOffset = currentX;
             yOffset = currentY;
@@ -311,9 +322,9 @@ function renderCandidates(candidates) {
         shapeEl.style.pointerEvents = 'none';
 
         // Mouse events on wrapper
-        wrapper.addEventListener('mousedown', (e) => startDrag(e, candidate, index));
+        wrapper.addEventListener('mousedown', (e) => handleInputDown(e, candidate, index));
         // Touch events on wrapper
-        wrapper.addEventListener('touchstart', (e) => startDrag(e, candidate, index));
+        wrapper.addEventListener('touchstart', (e) => handleInputDown(e, candidate, index), { passive: false });
 
         wrapper.appendChild(shapeEl);
         candidatesEl.appendChild(wrapper);
@@ -351,30 +362,39 @@ function createShapeElement(matrix, sizePx, color) {
 
 let dragSourceElement = null;
 
-function startDrag(e, candidate, index) {
-    e.preventDefault();
+let potentialDrag = null;
+
+function handleInputDown(e, candidate, index) {
+    e.preventDefault(); // Prevent default touch behavior if needed, though passive: false on listener handles it
     const clientX = e.clientX || e.touches[0].clientX;
     const clientY = e.clientY || e.touches[0].clientY;
 
+    potentialDrag = {
+        candidate,
+        index,
+        startX: clientX,
+        startY: clientY,
+        target: e.currentTarget
+    };
+}
+
+function initiateDrag(e) {
+    if (!potentialDrag) return;
+
+    const { candidate, index, target } = potentialDrag;
     draggingShape = { candidate, index };
 
     // Hide original element
-    dragSourceElement = e.currentTarget;
+    dragSourceElement = target;
     if (dragSourceElement) {
         dragSourceElement.style.opacity = '0';
     }
 
-    // Create drag element clone with FULL GRID SIZE
-    // We need to use the calculated cellSize here
-    // Also adjust gap/radius to match grid if we want perfection, but simple scaling is okay too.
-    // Let's use createShapeElement with cellSize but we might need to adjust gap/radius styles manually if we want them to match grid exactly.
-    // The grid has gap: 4px. createShapeElement uses gap: 2px.
-    // Let's just use createShapeElement and override gap/radius for the drag element if needed.
-
+    // Create drag element clone
     dragElement = createShapeElement(candidate.matrix, cellSize, candidate.color);
-    dragElement.style.gap = '4px'; // Match grid gap
+    dragElement.style.gap = '4px';
     Array.from(dragElement.children).forEach(child => {
-        child.style.borderRadius = '4px'; // Match grid radius
+        child.style.borderRadius = '4px';
     });
 
     dragElement.classList.add('dragging');
@@ -383,52 +403,73 @@ function startDrag(e, candidate, index) {
     dragElement.style.zIndex = '1000';
     dragElement.style.opacity = '0.8';
 
-    // No transform scale needed as we created it at full size
-
     document.body.appendChild(dragElement);
-
-    // Calculate offset to center the drag element on cursor
-    // OR maintain relative position?
-    // When clicking a small shape and it becomes big, centering on cursor is usually best UX.
 
     const dragRect = dragElement.getBoundingClientRect();
     dragOffsetX = dragRect.width / 2;
-    dragOffsetY = dragRect.height / 2;
 
+    // Add offset for touch events
+    const isTouch = e.type.startsWith('touch');
+    const touchOffset = isTouch ? 100 : 0;
+
+    dragOffsetY = (dragRect.height / 2) + touchOffset;
+
+    // Initial update
+    const clientX = e.clientX || e.touches[0].clientX;
+    const clientY = e.clientY || e.touches[0].clientY;
     updateDragPosition(clientX, clientY);
-}
 
-function updateDragPosition(clientX, clientY) {
-    if (!dragElement) return;
-    dragElement.style.left = `${clientX - dragOffsetX}px`;
-    dragElement.style.top = `${clientY - dragOffsetY}px`;
-
-    highlightGrid(clientX, clientY);
+    potentialDrag = null; // Consumed
 }
 
 function onMouseMove(e) {
-    if (!draggingShape) return;
-    updateDragPosition(e.clientX, e.clientY);
+    if (draggingShape) {
+        updateDragPosition(e.clientX, e.clientY);
+    } else if (potentialDrag) {
+        const dist = Math.hypot(e.clientX - potentialDrag.startX, e.clientY - potentialDrag.startY);
+        if (dist > 5) {
+            initiateDrag(e);
+        }
+    }
 }
 
 function onTouchMove(e) {
-    if (!draggingShape) return;
-    e.preventDefault(); // Prevent scrolling
-    updateDragPosition(e.touches[0].clientX, e.touches[0].clientY);
+    if (draggingShape || potentialDrag) {
+        e.preventDefault(); // Prevent scrolling
+    }
+
+    if (draggingShape) {
+        updateDragPosition(e.touches[0].clientX, e.touches[0].clientY);
+    } else if (potentialDrag) {
+        const touch = e.touches[0];
+        const dist = Math.hypot(touch.clientX - potentialDrag.startX, touch.clientY - potentialDrag.startY);
+        if (dist > 5) {
+            initiateDrag(e);
+        }
+    }
 }
 
 function onMouseUp(e) {
-    if (!draggingShape) return;
-    attemptPlace(e.clientX, e.clientY);
-    endDrag();
+    if (draggingShape) {
+        attemptPlace(e.clientX, e.clientY);
+        endDrag();
+    } else if (potentialDrag) {
+        // It was a click!
+        game.rotateCandidate(potentialDrag.index);
+        potentialDrag = null;
+    }
 }
 
 function onTouchEnd(e) {
-    if (!draggingShape) return;
-    // Use changedTouches for the final position
-    const touch = e.changedTouches[0];
-    attemptPlace(touch.clientX, touch.clientY);
-    endDrag();
+    if (draggingShape) {
+        const touch = e.changedTouches[0];
+        attemptPlace(touch.clientX, touch.clientY);
+        endDrag();
+    } else if (potentialDrag) {
+        // It was a tap!
+        game.rotateCandidate(potentialDrag.index);
+        potentialDrag = null;
+    }
 }
 
 function endDrag() {
