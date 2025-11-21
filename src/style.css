@@ -1,0 +1,255 @@
+:root {
+  --bg-color: #1a1a2e;
+  --grid-bg: #16213e;
+  --cell-empty: #0f3460;
+  --accent: #e94560;
+  --text-color: #ffffff;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 400px;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.score-animating {
+  color: #ffd700;
+  /* Yellow */
+  animation: scoreJump 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes scoreJump {
+  0% {
+    transform: scale(1);
+  }
+
+  100% {
+    transform: scale(1.2);
+  }
+}
+
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  gap: 4px;
+  background-color: var(--grid-bg);
+  padding: 10px;
+  border-radius: 8px;
+  width: 320px;
+  height: 320px;
+}
+
+.cell {
+  background-color: var(--cell-empty);
+  border-radius: 4px;
+}
+
+.filled {
+  background-color: var(--accent);
+  box-shadow: inset 3px 3px 0 rgba(255, 255, 255, 0.2),
+    inset -3px -3px 0 rgba(0, 0, 0, 0.15),
+    2px 2px 4px rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+/* Add a subtle inner bevel for empty cells too? Maybe not. */
+
+.highlight {
+  background-color: rgba(233, 69, 96, 0.5) !important;
+}
+
+.highlight-clear {
+  background-color: rgba(255, 215, 0, 0.5) !important;
+  box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.6);
+}
+
+.clearing {
+  animation: clearAnimation 0.3s ease-out forwards;
+}
+
+@keyframes clearAnimation {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+.combo-container {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 100;
+}
+
+.combo-popup {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  animation: comboPop 2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.great-popup {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #00ff88;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+  animation: comboPop 2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes comboPop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 0;
+    /* Fade out eventually? Or stay? Let's fade out via JS removal or animation */
+  }
+}
+
+.unbelievable-popup {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 4rem;
+  font-weight: 900;
+  background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);
+  background-size: 400%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  z-index: 2000;
+  pointer-events: none;
+  animation: unbelievableAnim 3s ease-in-out forwards;
+}
+
+@keyframes unbelievableAnim {
+  0% {
+    transform: translate(-50%, -50%) scale(0.1) rotate(-10deg);
+    opacity: 0;
+  }
+
+  20% {
+    transform: translate(-50%, -50%) scale(1.2) rotate(5deg);
+    opacity: 1;
+  }
+
+  40% {
+    transform: translate(-50%, -50%) scale(1) rotate(-5deg);
+  }
+
+  60% {
+    transform: translate(-50%, -50%) scale(1.1) rotate(5deg);
+  }
+
+  80% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0;
+  }
+}
+
+.candidates {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  max-width: 400px;
+  height: 100px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  align-items: center;
+  padding: 10px;
+}
+
+.candidate-wrapper {
+  padding: 20px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.game-over-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.game-over-content {
+  background-color: var(--bg-color);
+  padding: 40px;
+  border-radius: 16px;
+  text-align: center;
+  border: 2px solid var(--accent);
+}
+
+.game-over-content h2 {
+  margin-top: 0;
+  color: var(--accent);
+}
+
+.game-over-content button {
+  background-color: var(--accent);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 20px;
+}
+
+.game-over-content button:hover {
+  opacity: 0.9;
+}
